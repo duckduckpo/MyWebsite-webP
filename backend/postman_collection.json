@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-9090-4e5f-a6b7-c8d9e0f1a2b3",
+		"name": "TripSplitter Verified (Port 9090)",
+		"description": "Verified collection for Go Fiber Backend using uint IDs and Port 9090",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Create Trip & Users",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"trip_id\", jsonData.id);",
+							"if (jsonData.members && jsonData.members.length >= 2) {",
+							"    pm.environment.set(\"user_id_1\", jsonData.members[0].id);",
+							"    pm.environment.set(\"user_id_2\", jsonData.members[1].id);",
+							"}",
+							"console.log(\"Active Trip ID:\", jsonData.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Goa Trip 2026\",\n    \"invite_code\": \"GOA90\",\n    \"currency\": \"INR\",\n    \"members\": [\n        {\n            \"name\": \"Rahul\",\n            \"email\": \"rahul@example.com\",\n            \"home_currency\": \"INR\"\n        },\n        {\n            \"name\": \"Sneha\",\n            \"email\": \"sneha@example.com\",\n            \"home_currency\": \"INR\"\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/trips",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Get Trip Dashboard",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/{{trip_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"{{trip_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Add Shared Expense",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"trip_id\": {{trip_id}},\n    \"description\": \"Dinner at Britto's\",\n    \"amount\": 2400,\n    \"paid_by\": {{user_id_1}},\n    \"splits\": [\n        {\n            \"user_id\": {{user_id_1}},\n            \"amount\": 1200\n        },\n        {\n            \"user_id\": {{user_id_2}},\n            \"amount\": 1200\n        }\n    ],\n    \"location_name\": \"Baga Beach, Goa\",\n    \"latitude\": 15.5494,\n    \"longitude\": 73.7535\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/trips/{{trip_id}}/expenses",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"{{trip_id}}",
+						"expenses"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Get All Expenses (Map Data)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/{{trip_id}}/expenses",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"{{trip_id}}",
+						"expenses"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Get Simplified Balances",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/{{trip_id}}/balances",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"{{trip_id}}",
+						"balances"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:9090",
+			"type": "default"
+		},
+		{
+			"key": "trip_id",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "user_id_1",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "user_id_2",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
