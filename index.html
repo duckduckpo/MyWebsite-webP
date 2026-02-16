@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripSplitter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        accent: { 500: '#8b5cf6', 600: '#7c3aed' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Category Button Active State */
+        .cat-btn.active {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+            color: #4338ca;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Map Styles */
+        #map-container { height: 100%; width: 100%; border-radius: 1rem; z-index: 1; }
+        .leaflet-popup-content-wrapper { border-radius: 0.75rem; font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-800 h-screen flex overflow-hidden selection:bg-primary-200">
+
+    <aside class="w-72 bg-white h-full hidden md:flex flex-col border-r border-gray-200 z-20 relative">
+        <div class="p-6 pb-2">
+            <h1 class="text-2xl font-bold flex items-center gap-2 text-primary-900 tracking-tight">
+                <div class="w-8 h-8 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg text-white flex items-center justify-center">
+                    <i class="ph-bold ph-paper-plane-tilt"></i>
+                </div>
+                TripSplitter
+            </h1>
+        </div>
+
+        <div class="px-6 py-4">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Current Trip</label>
+            <div class="relative group">
+                <button id="trip-selector" class="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 p-3 rounded-xl transition text-left group-hover:border-primary-300">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-primary-100 text-primary-600 p-2 rounded-lg"><i class="ph-bold ph-map-pin"></i></div>
+                        <div>
+                            <p class="font-bold text-gray-900 text-sm" id="current-trip-name">Goa Trip 2026</p>
+                            <p class="text-xs text-gray-500">4 Members</p>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-caret-down text-gray-400"></i>
+                </button>
+                <div class="absolute top-full left-0 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl hidden group-hover:block z-50 p-2">
+                    <div class="p-2 hover:bg-primary-50 rounded-lg cursor-pointer flex items-center gap-2" onclick="switchTripName('Goa Trip 2026')"><span class="w-2 h-2 rounded-full bg-green-500"></span> Goa Trip</div>
+                    <div class="p-2 hover:bg-primary-50 rounded-lg cursor-pointer flex items-center gap-2" onclick="switchTripName('Manali Roadtrip')"><span class="w-2 h-2 rounded-full bg-gray-300"></span> Manali Roadtrip</div>
+                    <div class="h-[1px] bg-gray-100 my-1"></div>
+                    <div class="p-2 text-primary-600 font-bold text-sm cursor-pointer hover:bg-gray-50 rounded-lg flex items-center gap-2" onclick="openModal('modal-add-trip')"><i class="ph-bold ph-plus"></i> Create New Trip</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-1 mt-2">
+            <button onclick="navTo('dashboard')" id="btn-dashboard" class="nav-btn active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-primary-600 text-white shadow-lg shadow-primary-500/30"><i class="ph-bold ph-squares-four text-lg"></i> Dashboard</button>
+            <button onclick="navTo('add')" id="btn-add" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-plus-circle text-lg"></i> Add Expense</button>
+            <button onclick="navTo('balances')" id="btn-balances" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-scales text-lg"></i> Balances</button>
+            <button onclick="navTo('map')" id="btn-map" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-map-trifold text-lg"></i> Map View</button>
+            <button onclick="navTo('report')" id="btn-report" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-file-text text-lg"></i> Report</button>
+        </nav>
+
+        <div class="p-4 border-t border-gray-100">
+            <button onclick="openModal('modal-profile')" class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition border border-transparent hover:border-gray-200">
+                <img src="https://ui-avatars.com/api/?name=Rahul+Verma&background=0D8ABC&color=fff" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+                <div class="text-left">
+                    <p class="text-sm font-bold text-gray-900">Rahul Verma</p>
+                    <p class="text-xs text-gray-500">View Profile</p>
+                </div>
+                <i class="ph-bold ph-gear ml-auto text-gray-400"></i>
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 h-full overflow-y-auto bg-[#f8fafc] relative">
+        <header class="md:hidden bg-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+            <h1 class="font-bold text-primary-700">TripSplitter</h1>
+            <i class="ph-bold ph-list text-2xl"></i>
+        </header>
+
+        <section id="view-dashboard" class="view-section p-8 max-w-7xl mx-auto fade-in">
+            <div class="w-full bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl shadow-primary-900/10 mb-8 relative overflow-hidden">
+                <div class="absolute right-0 top-0 opacity-10 transform translate-x-10 -translate-y-10"><i class="ph-fill ph-airplane-tilt text-[200px]"></i></div>
+                <div class="relative z-10">
+                    <p class="text-primary-100 font-medium mb-1">Total Trip Spending</p>
+                    <h2 class="text-5xl font-bold mb-4">₹24,500</h2>
+                    <div class="flex gap-4">
+                        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg"><span class="text-xs text-white/80 uppercase">Your Share</span><p class="font-bold text-lg">₹6,125</p></div>
+                        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg"><span class="text-xs text-white/80 uppercase">You Paid</span><p class="font-bold text-lg">₹4,000</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-gray-900 text-lg">Category Breakdown</h3></div>
+                    <div class="space-y-6">
+                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-pizza text-orange-500"></i> Food & Drink</span><span class="font-bold text-gray-900">₹8,000</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-orange-400 rounded-full" style="width: 45%"></div></div></div>
+                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-bed text-primary-500"></i> Accommodation</span><span class="font-bold text-gray-900">₹12,000</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary-500 rounded-full" style="width: 55%"></div></div></div>
+                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-taxi text-emerald-500"></i> Transport</span><span class="font-bold text-gray-900">₹4,500</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" style="width: 20%"></div></div></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-900 text-lg mb-6">Recent Expenses</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition cursor-pointer">
+                            <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl"><i class="ph-bold ph-pizza"></i></div>
+                            <div class="flex-1"><h4 class="font-bold text-gray-900">Dinner at Britto's</h4><p class="text-xs text-gray-500">Added by Priya • Yesterday</p></div>
+                            <span class="font-bold text-red-500">-₹2,400</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition cursor-pointer">
+                            <div class="w-12 h-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xl"><i class="ph-bold ph-taxi"></i></div>
+                            <div class="flex-1"><h4 class="font-bold text-gray-900">Cab to Airport</h4><p class="text-xs text-gray-500">Added by You • 2 days ago</p></div>
+                            <span class="font-bold text-red-500">-₹850</span>
+                        </div>
+                    </div>
+                    <button onclick="navTo('add')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-primary-500 hover:text-primary-600 transition flex items-center justify-center gap-2"><i class="ph-bold ph-plus"></i> Add New Expense</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-add" class="view-section hidden p-8 max-w-3xl mx-auto fade-in">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Expense</h2>
+                <form onsubmit="event.preventDefault(); alert('Expense Saved!'); navTo('dashboard');">
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Amount (₹)</label>
+                        <div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">₹</span><input type="number" class="w-full pl-10 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-2xl font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition" placeholder="0.00"></div>
+                    </div>
+                    <div class="mb-6"><label class="block text-sm font-bold text-gray-700 mb-2">Description</label><input type="text" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="e.g. Lunch at Cafe"></div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Category</label>
+                        <div class="grid grid-cols-4 gap-3">
+                            <button type="button" onclick="selectCategory(this)" class="cat-btn active flex flex-col items-center justify-center gap-2 p-3 border rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-pizza text-2xl"></i> <span class="text-xs font-bold">Food</span></button>
+                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-car text-2xl"></i> <span class="text-xs font-bold">Transport</span></button>
+                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-house text-2xl"></i> <span class="text-xs font-bold">Stay</span></button>
+                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-ticket text-2xl"></i> <span class="text-xs font-bold">Fun</span></button>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-8"><button type="button" onclick="navTo('dashboard')" class="w-1/3 py-3 rounded-xl border border-gray-200 font-bold text-gray-600 hover:bg-gray-50 transition">Cancel</button><button type="submit" class="w-2/3 py-3 rounded-xl bg-primary-600 text-white font-bold shadow-lg shadow-primary-500/30 hover:bg-primary-700 transition transform active:scale-95">Save Expense</button></div>
+                </form>
+            </div>
+        </section>
+
+        <section id="view-balances" class="view-section hidden p-8 max-w-5xl mx-auto fade-in">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Settlement Plan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Arjun&background=random" class="w-10 h-10 rounded-full"><span class="font-bold">Arjun</span></div><div class="text-center px-4"><span class="text-xs text-gray-400 font-bold uppercase">owes</span><div class="h-[1px] w-16 bg-gray-300 my-1 relative"><i class="ph-fill ph-caret-right absolute -right-1 -top-1.5 text-gray-300"></i></div></div><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Priya&background=10b981&color=fff" class="w-10 h-10 rounded-full"><span class="font-bold">Priya</span></div><div class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-bold border border-red-100">₹850</div></div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Rahul&background=primary" class="w-10 h-10 rounded-full border-2 border-primary-500"><span class="font-bold text-primary-700">You</span></div><div class="text-center px-4"><span class="text-xs text-gray-400 font-bold uppercase">owes</span><div class="h-[1px] w-16 bg-gray-300 my-1 relative"><i class="ph-fill ph-caret-right absolute -right-1 -top-1.5 text-gray-300"></i></div></div><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Priya&background=10b981&color=fff" class="w-10 h-10 rounded-full"><span class="font-bold">Priya</span></div><div class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-bold border border-red-100">₹2,125</div></div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-2xl shadow-xl flex flex-col items-center text-center">
+                    <h3 class="font-bold text-gray-300 uppercase tracking-wider text-sm mb-2">Total You Owe</h3>
+                    <p class="text-4xl font-bold text-red-400 mb-6">-₹2,125.00</p>
+                    
+                    <div class="bg-white p-4 rounded-xl shadow-lg mb-4">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=priya@bank&pn=Priya&am=2125" alt="UPI QR Code" class="w-32 h-32">
+                        <p class="text-gray-900 font-bold text-xs mt-2">Scan to Pay Priya</p>
+                    </div>
+
+                    <p class="text-xs text-gray-400 mb-4">Accepts GPay, PhonePe, Paytm</p>
+                    
+                    <button class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl hover:bg-primary-500 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-share-network"></i> Share Payment Link
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-map" class="view-section hidden h-full p-4 fade-in flex flex-col md:flex-row gap-4">
+            <div class="w-full md:w-80 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-bold text-gray-900">Expense Locations</h3>
+                    <p class="text-xs text-gray-500">3 Locations found</p>
+                </div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-2">
+                    <div class="p-3 bg-gray-50 hover:bg-primary-50 hover:border-primary-200 border border-transparent rounded-xl cursor-pointer transition" onclick="panMap(15.5494, 73.7535)">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-orange-100 text-orange-600 p-2 rounded-lg"><i class="ph-bold ph-pizza"></i></div>
+                            <div><p class="font-bold text-sm text-gray-900">Britto's Shack</p><p class="text-xs text-gray-500">Baga • ₹2,400</p></div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-gray-50 hover:bg-primary-50 hover:border-primary-200 border border-transparent rounded-xl cursor-pointer transition" onclick="panMap(15.4909, 73.8278)">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-purple-100 text-purple-600 p-2 rounded-lg"><i class="ph-bold ph-columns"></i></div>
+                            <div><p class="font-bold text-sm text-gray-900">Fort Aguada</p><p class="text-xs text-gray-500">Sinquerim • ₹500</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
+                <div id="map-container"></div>
+            </div>
+        </section>
+
+        <section id="view-report" class="view-section hidden p-8 max-w-5xl mx-auto fade-in">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-gray-900">Expense Report</h2><button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition shadow-lg"><i class="ph-bold ph-printer"></i> Print PDF</button></div>
+            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-200"><tr><th class="p-4 text-xs font-bold text-gray-500 uppercase">Date</th><th class="p-4 text-xs font-bold text-gray-500 uppercase">Description</th><th class="p-4 text-xs font-bold text-gray-500 uppercase">Category</th><th class="p-4 text-xs font-bold text-gray-500 uppercase text-right">Amount</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr><td class="p-4 text-gray-600">Oct 12</td><td class="p-4 font-bold text-gray-900">Dinner at Britto's</td><td class="p-4"><span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">Food</span></td><td class="p-4 text-right font-bold">₹2,400</td></tr>
+                        <tr><td class="p-4 text-gray-600">Oct 13</td><td class="p-4 font-bold text-gray-900">Fort Entry</td><td class="p-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-bold">Fun</span></td><td class="p-4 text-right font-bold">₹500</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="modal-add-trip" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm" onclick="closeModal('modal-add-trip')">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl scale-95 transition transform" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Create New Trip</h3>
+            <div class="space-y-4"><div><label class="block text-sm font-bold text-gray-700 mb-1">Trip Name</label><input type="text" class="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none" placeholder="e.g. Manali 2026"></div><button onclick="closeModal('modal-add-trip'); alert('New Trip Created!');" class="w-full py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700">Create Trip</button></div>
+        </div>
+    </div>
+
+    <div id="modal-profile" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end md:items-center justify-center backdrop-blur-sm" onclick="closeModal('modal-profile')">
+        <div class="bg-white md:rounded-2xl rounded-t-2xl p-0 w-full max-w-lg shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="bg-primary-600 h-24 relative"><button onclick="closeModal('modal-profile')" class="absolute top-4 right-4 text-white/80 hover:text-white"><i class="ph-bold ph-x text-xl"></i></button></div>
+            <div class="px-6 pb-6 relative"><div class="-mt-12 mb-4"><img src="https://ui-avatars.com/api/?name=Rahul+Verma&background=0D8ABC&color=fff" class="w-24 h-24 rounded-full border-4 border-white shadow-md"></div><h3 class="text-2xl font-bold text-gray-900">Rahul Verma</h3><p class="text-gray-500">rahul.v@example.com</p><div class="mt-6 space-y-2"><button class="w-full flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50"><span class="font-medium text-gray-700">Currency</span><span class="text-gray-500 text-sm">INR (₹) ></span></button></div><button onclick="closeModal('modal-profile')" class="w-full mt-6 py-3 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50">Log Out</button></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // NAVIGATION LOGIC
+        function navTo(pageId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + pageId).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-primary-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-gray-500', 'hover:bg-primary-50', 'hover:text-primary-700');
+            });
+            const activeBtn = document.getElementById('btn-' + pageId);
+            activeBtn.classList.remove('text-gray-500', 'hover:bg-primary-50', 'hover:text-primary-700');
+            activeBtn.classList.add('active', 'bg-primary-600', 'text-white', 'shadow-lg');
+
+            if(pageId === 'map' && map) { setTimeout(() => { map.invalidateSize(); }, 200); }
+        }
+
+        function selectCategory(btn) {
+            const parent = btn.parentElement;
+            parent.querySelectorAll('.cat-btn').forEach(b => { b.classList.remove('active'); });
+            btn.classList.add('active');
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function switchTripName(name) { document.getElementById('current-trip-name').innerText = name; navTo('dashboard'); }
+
+        // --- REAL MAP LOGIC (Updated to Goa) ---
+        var map;
+        document.addEventListener('DOMContentLoaded', () => {
+            map = L.map('map-container').setView([15.5494, 73.7535], 11); // Focused on Goa
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+            L.marker([15.5494, 73.7535]).addTo(map).bindPopup("<b>Britto's Shack</b><br>₹2,400").openPopup();
+            L.marker([15.4909, 73.8278]).addTo(map).bindPopup("<b>Fort Aguada</b><br>₹500");
+        });
+
+        function panMap(lat, lng) { map.flyTo([lat, lng], 14); }
+    </script>
+</body>
+</html>
