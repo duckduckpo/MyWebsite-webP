@@ -1,293 +1,544 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripSplitter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
-                    colors: {
-                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
-                        accent: { 500: '#8b5cf6', 600: '#7c3aed' }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Category Button Active State */
-        .cat-btn.active {
-            background-color: #e0e7ff;
-            border-color: #6366f1;
-            color: #4338ca;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
-        }
-
-        /* Map Styles */
-        #map-container { height: 100%; width: 100%; border-radius: 1rem; z-index: 1; }
-        .leaflet-popup-content-wrapper { border-radius: 0.75rem; font-family: 'Outfit', sans-serif; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripSplitter</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+:root{--ind:#4f46e5;--ind-d:#3730a3;--ind-l:#e0e7ff;--ind-xl:#eef2ff;--vio:#7c3aed;--rose:#e11d48;
+  --s50:#f8fafc;--s100:#f1f5f9;--s200:#e2e8f0;--s300:#cbd5e1;--s400:#94a3b8;--s500:#64748b;--s700:#334155;--s900:#0f172a;--bg:#f0f2f8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--s900);height:100vh;display:flex;overflow:hidden;}
+#login-screen{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,#1e1b4b,#312e81 50%,#4c1d95);display:flex;align-items:center;justify-content:center;}
+.login-box{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.4);animation:popIn .3s cubic-bezier(.16,1,.3,1);}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.logo-icon{border-radius:10px;background:linear-gradient(135deg,var(--ind),var(--vio));display:flex;align-items:center;justify-content:center;}
+.login-sub{font-size:12px;color:var(--s400);margin-bottom:22px;}
+.login-plbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--s400);margin-bottom:10px;}
+.login-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pcard{border:1.5px solid var(--s200);border-radius:12px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all .15s;}
+.pcard:hover{border-color:var(--ind);background:var(--ind-xl);transform:translateY(-2px);}
+.pcard .pname{font-size:12px;font-weight:700;}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;}
+#app-shell{display:none;width:100%;height:100vh;}
+.app-inner{display:flex;width:100%;height:100%;overflow:hidden;}
+.sidebar{width:248px;background:var(--s900);height:100vh;display:flex;flex-direction:column;flex-shrink:0;}
+.sb-logo{padding:18px 14px 12px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px;}
+.sb-trip{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sb-trip-lbl{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:5px;}
+.sb-pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.sb-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;}
+.sb-tname{font-size:12px;font-weight:600;color:#fff;}
+.sb-tsub{font-size:10px;color:rgba(255,255,255,.35);}
+nav{flex:1;padding:8px 6px;display:flex;flex-direction:column;gap:2px;}
+.nav-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.4);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:left;}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);}
+.nav-btn.active{background:var(--ind);color:#fff;}
+.lang-wrap{padding:8px 10px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);}
+.lang-row{display:flex;background:rgba(255,255,255,.08);border-radius:7px;padding:3px;gap:3px;}
+.lbtn{flex:1;padding:5px 0;border:none;border-radius:5px;background:transparent;color:rgba(255,255,255,.38);font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;}
+.lbtn.active{background:var(--ind);color:#fff;}
+.sb-profile{padding:8px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-pbtn{width:100%;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;border:none;background:transparent;cursor:pointer;transition:background .15s;}
+.sb-pbtn:hover{background:rgba(255,255,255,.07);}
+.sb-pname{font-size:11px;font-weight:600;color:#fff;text-align:left;}
+.sb-psub{font-size:9px;color:rgba(255,255,255,.28);}
+.sb-gear{margin-left:auto;color:rgba(255,255,255,.2);font-size:13px;}
+main{flex:1;height:100vh;overflow-y:auto;background:var(--bg);display:flex;flex-direction:column;min-width:0;}
+.view{display:none;}.view.active{display:flex;flex-direction:column;animation:fadeUp .25s ease-out;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.pp{padding:22px;}.page-title{font-size:19px;font-weight:800;letter-spacing:-.5px;}.page-sub{font-size:11px;color:var(--s400);margin-top:2px;}
+.card{background:#fff;border-radius:14px;padding:16px;border:1px solid var(--s200);}.card-hd{font-size:12px;font-weight:700;margin-bottom:13px;}
+.hero{background:linear-gradient(135deg,#3730a3,#4f46e5 50%,#7c3aed);border-radius:16px;padding:22px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
+.hero-bg{position:absolute;right:-8px;top:-8px;font-size:120px;opacity:.06;pointer-events:none;line-height:1;}
+.hlbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;}
+.hamt{font-size:38px;font-weight:800;letter-spacing:-2px;margin:6px 0 14px;line-height:1;}
+.hpills{display:flex;gap:8px;flex-wrap:wrap;}
+.hpill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:6px 12px;}
+.plbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.6;display:block;}
+.pval{font-size:15px;font-weight:700;}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+.cat-row{margin-bottom:12px;}.cat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.cname{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--s700);}
+.cname-sub{font-size:9px;color:var(--s400);font-weight:400;}.camt{font-size:11px;font-weight:700;}
+.bar-t{height:5px;background:var(--s100);border-radius:99px;overflow:hidden;}
+.bar-f{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.16,1,.3,1);}
+.exp-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;transition:background .15s;cursor:pointer;margin-bottom:3px;}
+.exp-item:hover{background:var(--s50);}
+.exp-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.exp-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-meta{font-size:9px;color:var(--s400);margin-top:1px;}.exp-amt{font-size:12px;font-weight:700;color:var(--rose);flex-shrink:0;}
+.add-ghost{width:100%;margin-top:7px;padding:10px;border:2px dashed var(--s200);border-radius:10px;background:transparent;color:var(--s400);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.add-ghost:hover{border-color:var(--ind);color:var(--ind);background:var(--ind-xl);}
+.form-wrap{padding:22px;display:flex;justify-content:center;}
+.form-card{background:#fff;border-radius:16px;border:1px solid var(--s200);padding:22px;width:100%;max-width:480px;}
+.ftitle{font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:18px;}
+.field{margin-bottom:15px;}.flbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--s500);margin-bottom:6px;}
+.amt-wrap{position:relative;}
+.amt-pre{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:19px;font-weight:700;color:var(--s300);pointer-events:none;}
+.amt-inp{width:100%;padding:12px 12px 12px 32px;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--s900);background:var(--s50);border:1.5px solid var(--s200);border-radius:10px;outline:none;transition:border-color .15s;}
+.amt-inp:focus,.txt-inp:focus{border-color:var(--ind);}
+.txt-inp{width:100%;padding:10px 12px;font-family:'Syne',sans-serif;font-size:12px;color:var(--s900);background:#fff;border:1.5px solid var(--s200);border-radius:10px;outline:none;transition:border-color .15s;}
+select.txt-inp{cursor:pointer;}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.cat-opt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;border:1.5px solid var(--s200);border-radius:10px;background:#fff;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;}
+.cat-opt:hover{border-color:var(--ind);background:var(--ind-xl);}
+.cat-opt.active{border-color:var(--ind);background:var(--ind-l);}
+.co-icon{font-size:18px;}.co-en{font-size:9px;font-weight:700;color:var(--s500);}
+.co-hi{font-family:'Noto Sans Devanagari',sans-serif;font-size:8px;color:var(--s400);}
+.cat-opt.active .co-en{color:var(--ind-d);}
+.form-actions{display:flex;gap:8px;margin-top:18px;}
+.btn-cancel{flex:1;padding:11px;border:1.5px solid var(--s200);border-radius:10px;background:transparent;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--s500);cursor:pointer;}
+.btn-cancel:hover{background:var(--s50);}
+.btn-save{flex:2;padding:11px;border:none;border-radius:10px;background:var(--ind);color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-save:hover{background:var(--ind-d);}
+.bal-grid{display:grid;grid-template-columns:1fr 290px;gap:14px;}
+.settle-row{background:#fff;border-radius:12px;border:1px solid var(--s200);padding:11px 13px;display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.sinfo{flex:1;}.sname{font-size:12px;font-weight:700;}.saction{font-size:9px;color:var(--s400);}
+.sarrow{font-size:15px;color:var(--s300);flex-shrink:0;}
+.sto{display:flex;align-items:center;gap:6px;}.sto-name{font-size:11px;font-weight:700;color:var(--s700);}
+.sbadge{padding:3px 10px;border-radius:7px;font-size:11px;font-weight:700;background:#fff1f2;color:var(--rose);border:1px solid #fecdd3;flex-shrink:0;}
+.pay-card{background:var(--s900);border-radius:14px;padding:18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;}
+.pc-lbl{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.35);}
+.pc-amt{font-size:32px;font-weight:800;letter-spacing:-2px;line-height:1;}
+.pc-amt.owe{color:#fb7185;}.pc-amt.owed{color:#4ade80;}
+.qr-box{background:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.qr-box img{width:96px;height:96px;}.qr-lbl{font-size:9px;font-weight:700;color:var(--s700);}
+.upi-note{font-size:9px;color:rgba(255,255,255,.22);}
+.btn-share{width:100%;padding:9px;border:none;border-radius:9px;background:var(--ind);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.btn-share:hover{background:var(--ind-d);}
+#view-map.active{flex-direction:row;height:100vh;}
+.map-sb{width:240px;background:#fff;border-right:1px solid var(--s200);display:flex;flex-direction:column;flex-shrink:0;height:100%;overflow:hidden;}
+.map-sb-hd{padding:14px 13px 10px;border-bottom:1px solid var(--s100);flex-shrink:0;}
+.map-sb-title{font-size:13px;font-weight:700;}.map-sb-sub{font-size:9px;color:var(--s400);}
+.map-list{flex:1;overflow-y:auto;padding:6px;}
+.map-item{display:flex;align-items:center;gap:9px;padding:9px;border-radius:9px;cursor:pointer;transition:background .15s;margin-bottom:2px;border:1px solid transparent;}
+.map-item:hover{background:var(--ind-xl);border-color:var(--ind-l);}
+.map-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.map-iname{font-size:11px;font-weight:700;}.map-isub{font-size:9px;color:var(--s400);}
+.map-main{flex:1;position:relative;overflow:hidden;}#map-container{width:100%;height:100%;}
+.report-hd{display:flex;justify-content:space-between;align-items:flex-start;padding:22px 22px 0;flex-shrink:0;}
+.btn-print{display:flex;align-items:center;gap:5px;padding:8px 12px;background:var(--s900);color:#fff;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;}
+.btn-print:hover{background:var(--s700);}
+.tbl-wrap{background:#fff;border-radius:12px;border:1px solid var(--s200);overflow:hidden;margin:13px 22px 22px;}
+table{width:100%;border-collapse:collapse;}thead{background:var(--s50);}
+th{padding:9px 12px;text-align:left;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--s400);}
+th.r,td.r{text-align:right;}td{padding:10px 12px;font-size:11px;color:var(--s700);border-top:1px solid var(--s100);}
+td.b{font-weight:700;color:var(--s900);}td.r{font-weight:700;color:var(--s900);}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal.open{display:flex;}
+.mbox{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:360px;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:popIn .2s cubic-bezier(.16,1,.3,1);}
+.mtitle{font-size:15px;font-weight:800;margin-bottom:14px;}
+.pmod-hd{background:linear-gradient(135deg,var(--ind),var(--vio));height:64px;border-radius:11px 11px 0 0;position:relative;margin:-22px -22px 0;}
+.pmod-close{position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.pmod-close:hover{background:rgba(255,255,255,.35);}
+.pmod-name{font-size:16px;font-weight:800;margin-top:8px;}.pmod-email{font-size:11px;color:var(--s400);margin-bottom:14px;}
+.popt{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--s100);border-radius:9px;font-size:12px;color:var(--s700);font-weight:500;margin-bottom:6px;cursor:pointer;transition:background .15s;}
+.popt:hover{background:var(--s50);}.popt-r{font-size:11px;color:var(--s400);}
+.btn-logout{width:100%;padding:10px;border:1.5px solid #fecdd3;border-radius:9px;background:transparent;color:var(--rose);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn-logout:hover{background:#fff1f2;}
+.sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.swcard{border:1.5px solid var(--s200);border-radius:11px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all .15s;}
+.swcard:hover,.swcard.cur{border-color:var(--ind);background:var(--ind-xl);}
+.sw-n{font-size:11px;font-weight:700;}.sw-r{font-size:8px;color:var(--s400);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--s900);color:#fff;padding:8px 16px;border-radius:10px;font-size:11px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--s200);border-radius:99px;}
+</style>
 </head>
-<body class="bg-gray-100 text-slate-800 h-screen flex overflow-hidden selection:bg-primary-200">
+<body>
 
-    <aside class="w-72 bg-white h-full hidden md:flex flex-col border-r border-gray-200 z-20 relative">
-        <div class="p-6 pb-2">
-            <h1 class="text-2xl font-bold flex items-center gap-2 text-primary-900 tracking-tight">
-                <div class="w-8 h-8 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg text-white flex items-center justify-center">
-                    <i class="ph-bold ph-paper-plane-tilt"></i>
-                </div>
-                TripSplitter
-            </h1>
-        </div>
-
-        <div class="px-6 py-4">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Current Trip</label>
-            <div class="relative group">
-                <button id="trip-selector" class="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 p-3 rounded-xl transition text-left group-hover:border-primary-300">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-primary-100 text-primary-600 p-2 rounded-lg"><i class="ph-bold ph-map-pin"></i></div>
-                        <div>
-                            <p class="font-bold text-gray-900 text-sm" id="current-trip-name">Goa Trip 2026</p>
-                            <p class="text-xs text-gray-500">4 Members</p>
-                        </div>
-                    </div>
-                    <i class="ph-bold ph-caret-down text-gray-400"></i>
-                </button>
-                <div class="absolute top-full left-0 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl hidden group-hover:block z-50 p-2">
-                    <div class="p-2 hover:bg-primary-50 rounded-lg cursor-pointer flex items-center gap-2" onclick="switchTripName('Goa Trip 2026')"><span class="w-2 h-2 rounded-full bg-green-500"></span> Goa Trip</div>
-                    <div class="p-2 hover:bg-primary-50 rounded-lg cursor-pointer flex items-center gap-2" onclick="switchTripName('Manali Roadtrip')"><span class="w-2 h-2 rounded-full bg-gray-300"></span> Manali Roadtrip</div>
-                    <div class="h-[1px] bg-gray-100 my-1"></div>
-                    <div class="p-2 text-primary-600 font-bold text-sm cursor-pointer hover:bg-gray-50 rounded-lg flex items-center gap-2" onclick="openModal('modal-add-trip')"><i class="ph-bold ph-plus"></i> Create New Trip</div>
-                </div>
-            </div>
-        </div>
-
-        <nav class="flex-1 px-4 space-y-1 mt-2">
-            <button onclick="navTo('dashboard')" id="btn-dashboard" class="nav-btn active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-primary-600 text-white shadow-lg shadow-primary-500/30"><i class="ph-bold ph-squares-four text-lg"></i> Dashboard</button>
-            <button onclick="navTo('add')" id="btn-add" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-plus-circle text-lg"></i> Add Expense</button>
-            <button onclick="navTo('balances')" id="btn-balances" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-scales text-lg"></i> Balances</button>
-            <button onclick="navTo('map')" id="btn-map" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-map-trifold text-lg"></i> Map View</button>
-            <button onclick="navTo('report')" id="btn-report" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-primary-50 hover:text-primary-700 text-sm font-medium transition-all"><i class="ph-bold ph-file-text text-lg"></i> Report</button>
-        </nav>
-
-        <div class="p-4 border-t border-gray-100">
-            <button onclick="openModal('modal-profile')" class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition border border-transparent hover:border-gray-200">
-                <img src="https://ui-avatars.com/api/?name=Rahul+Verma&background=0D8ABC&color=fff" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
-                <div class="text-left">
-                    <p class="text-sm font-bold text-gray-900">Rahul Verma</p>
-                    <p class="text-xs text-gray-500">View Profile</p>
-                </div>
-                <i class="ph-bold ph-gear ml-auto text-gray-400"></i>
-            </button>
-        </div>
-    </aside>
-
-    <main class="flex-1 h-full overflow-y-auto bg-[#f8fafc] relative">
-        <header class="md:hidden bg-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-            <h1 class="font-bold text-primary-700">TripSplitter</h1>
-            <i class="ph-bold ph-list text-2xl"></i>
-        </header>
-
-        <section id="view-dashboard" class="view-section p-8 max-w-7xl mx-auto fade-in">
-            <div class="w-full bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl shadow-primary-900/10 mb-8 relative overflow-hidden">
-                <div class="absolute right-0 top-0 opacity-10 transform translate-x-10 -translate-y-10"><i class="ph-fill ph-airplane-tilt text-[200px]"></i></div>
-                <div class="relative z-10">
-                    <p class="text-primary-100 font-medium mb-1">Total Trip Spending</p>
-                    <h2 class="text-5xl font-bold mb-4">₹24,500</h2>
-                    <div class="flex gap-4">
-                        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg"><span class="text-xs text-white/80 uppercase">Your Share</span><p class="font-bold text-lg">₹6,125</p></div>
-                        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg"><span class="text-xs text-white/80 uppercase">You Paid</span><p class="font-bold text-lg">₹4,000</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-gray-900 text-lg">Category Breakdown</h3></div>
-                    <div class="space-y-6">
-                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-pizza text-orange-500"></i> Food & Drink</span><span class="font-bold text-gray-900">₹8,000</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-orange-400 rounded-full" style="width: 45%"></div></div></div>
-                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-bed text-primary-500"></i> Accommodation</span><span class="font-bold text-gray-900">₹12,000</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary-500 rounded-full" style="width: 55%"></div></div></div>
-                        <div><div class="flex justify-between text-sm mb-2"><span class="flex items-center gap-2 font-medium text-gray-700"><i class="ph-fill ph-taxi text-emerald-500"></i> Transport</span><span class="font-bold text-gray-900">₹4,500</span></div><div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" style="width: 20%"></div></div></div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-900 text-lg mb-6">Recent Expenses</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition cursor-pointer">
-                            <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl"><i class="ph-bold ph-pizza"></i></div>
-                            <div class="flex-1"><h4 class="font-bold text-gray-900">Dinner at Britto's</h4><p class="text-xs text-gray-500">Added by Priya • Yesterday</p></div>
-                            <span class="font-bold text-red-500">-₹2,400</span>
-                        </div>
-                        <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition cursor-pointer">
-                            <div class="w-12 h-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xl"><i class="ph-bold ph-taxi"></i></div>
-                            <div class="flex-1"><h4 class="font-bold text-gray-900">Cab to Airport</h4><p class="text-xs text-gray-500">Added by You • 2 days ago</p></div>
-                            <span class="font-bold text-red-500">-₹850</span>
-                        </div>
-                    </div>
-                    <button onclick="navTo('add')" class="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-primary-500 hover:text-primary-600 transition flex items-center justify-center gap-2"><i class="ph-bold ph-plus"></i> Add New Expense</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="view-add" class="view-section hidden p-8 max-w-3xl mx-auto fade-in">
-            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Expense</h2>
-                <form onsubmit="event.preventDefault(); alert('Expense Saved!'); navTo('dashboard');">
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Amount (₹)</label>
-                        <div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">₹</span><input type="number" class="w-full pl-10 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-2xl font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition" placeholder="0.00"></div>
-                    </div>
-                    <div class="mb-6"><label class="block text-sm font-bold text-gray-700 mb-2">Description</label><input type="text" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="e.g. Lunch at Cafe"></div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-3">Category</label>
-                        <div class="grid grid-cols-4 gap-3">
-                            <button type="button" onclick="selectCategory(this)" class="cat-btn active flex flex-col items-center justify-center gap-2 p-3 border rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-pizza text-2xl"></i> <span class="text-xs font-bold">Food</span></button>
-                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-car text-2xl"></i> <span class="text-xs font-bold">Transport</span></button>
-                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-house text-2xl"></i> <span class="text-xs font-bold">Stay</span></button>
-                            <button type="button" onclick="selectCategory(this)" class="cat-btn flex flex-col items-center justify-center gap-2 p-3 border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition"><i class="ph-bold ph-ticket text-2xl"></i> <span class="text-xs font-bold">Fun</span></button>
-                        </div>
-                    </div>
-                    <div class="flex gap-4 mt-8"><button type="button" onclick="navTo('dashboard')" class="w-1/3 py-3 rounded-xl border border-gray-200 font-bold text-gray-600 hover:bg-gray-50 transition">Cancel</button><button type="submit" class="w-2/3 py-3 rounded-xl bg-primary-600 text-white font-bold shadow-lg shadow-primary-500/30 hover:bg-primary-700 transition transform active:scale-95">Save Expense</button></div>
-                </form>
-            </div>
-        </section>
-
-        <section id="view-balances" class="view-section hidden p-8 max-w-5xl mx-auto fade-in">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Settlement Plan</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Arjun&background=random" class="w-10 h-10 rounded-full"><span class="font-bold">Arjun</span></div><div class="text-center px-4"><span class="text-xs text-gray-400 font-bold uppercase">owes</span><div class="h-[1px] w-16 bg-gray-300 my-1 relative"><i class="ph-fill ph-caret-right absolute -right-1 -top-1.5 text-gray-300"></i></div></div><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Priya&background=10b981&color=fff" class="w-10 h-10 rounded-full"><span class="font-bold">Priya</span></div><div class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-bold border border-red-100">₹850</div></div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Rahul&background=primary" class="w-10 h-10 rounded-full border-2 border-primary-500"><span class="font-bold text-primary-700">You</span></div><div class="text-center px-4"><span class="text-xs text-gray-400 font-bold uppercase">owes</span><div class="h-[1px] w-16 bg-gray-300 my-1 relative"><i class="ph-fill ph-caret-right absolute -right-1 -top-1.5 text-gray-300"></i></div></div><div class="flex items-center gap-3"><img src="https://ui-avatars.com/api/?name=Priya&background=10b981&color=fff" class="w-10 h-10 rounded-full"><span class="font-bold">Priya</span></div><div class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-bold border border-red-100">₹2,125</div></div>
-                </div>
-                
-                <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-2xl shadow-xl flex flex-col items-center text-center">
-                    <h3 class="font-bold text-gray-300 uppercase tracking-wider text-sm mb-2">Total You Owe</h3>
-                    <p class="text-4xl font-bold text-red-400 mb-6">-₹2,125.00</p>
-                    
-                    <div class="bg-white p-4 rounded-xl shadow-lg mb-4">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=priya@bank&pn=Priya&am=2125" alt="UPI QR Code" class="w-32 h-32">
-                        <p class="text-gray-900 font-bold text-xs mt-2">Scan to Pay Priya</p>
-                    </div>
-
-                    <p class="text-xs text-gray-400 mb-4">Accepts GPay, PhonePe, Paytm</p>
-                    
-                    <button class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl hover:bg-primary-500 transition flex items-center justify-center gap-2">
-                        <i class="ph-bold ph-share-network"></i> Share Payment Link
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <section id="view-map" class="view-section hidden h-full p-4 fade-in flex flex-col md:flex-row gap-4">
-            <div class="w-full md:w-80 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
-                <div class="p-4 border-b border-gray-100">
-                    <h3 class="font-bold text-gray-900">Expense Locations</h3>
-                    <p class="text-xs text-gray-500">3 Locations found</p>
-                </div>
-                <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                    <div class="p-3 bg-gray-50 hover:bg-primary-50 hover:border-primary-200 border border-transparent rounded-xl cursor-pointer transition" onclick="panMap(15.5494, 73.7535)">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-orange-100 text-orange-600 p-2 rounded-lg"><i class="ph-bold ph-pizza"></i></div>
-                            <div><p class="font-bold text-sm text-gray-900">Britto's Shack</p><p class="text-xs text-gray-500">Baga • ₹2,400</p></div>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-gray-50 hover:bg-primary-50 hover:border-primary-200 border border-transparent rounded-xl cursor-pointer transition" onclick="panMap(15.4909, 73.8278)">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-purple-100 text-purple-600 p-2 rounded-lg"><i class="ph-bold ph-columns"></i></div>
-                            <div><p class="font-bold text-sm text-gray-900">Fort Aguada</p><p class="text-xs text-gray-500">Sinquerim • ₹500</p></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
-                <div id="map-container"></div>
-            </div>
-        </section>
-
-        <section id="view-report" class="view-section hidden p-8 max-w-5xl mx-auto fade-in">
-            <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-gray-900">Expense Report</h2><button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition shadow-lg"><i class="ph-bold ph-printer"></i> Print PDF</button></div>
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 border-b border-gray-200"><tr><th class="p-4 text-xs font-bold text-gray-500 uppercase">Date</th><th class="p-4 text-xs font-bold text-gray-500 uppercase">Description</th><th class="p-4 text-xs font-bold text-gray-500 uppercase">Category</th><th class="p-4 text-xs font-bold text-gray-500 uppercase text-right">Amount</th></tr></thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr><td class="p-4 text-gray-600">Oct 12</td><td class="p-4 font-bold text-gray-900">Dinner at Britto's</td><td class="p-4"><span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">Food</span></td><td class="p-4 text-right font-bold">₹2,400</td></tr>
-                        <tr><td class="p-4 text-gray-600">Oct 13</td><td class="p-4 font-bold text-gray-900">Fort Entry</td><td class="p-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-bold">Fun</span></td><td class="p-4 text-right font-bold">₹500</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-    </main>
-
-    <div id="modal-add-trip" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm" onclick="closeModal('modal-add-trip')">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl scale-95 transition transform" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-4">Create New Trip</h3>
-            <div class="space-y-4"><div><label class="block text-sm font-bold text-gray-700 mb-1">Trip Name</label><input type="text" class="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none" placeholder="e.g. Manali 2026"></div><button onclick="closeModal('modal-add-trip'); alert('New Trip Created!');" class="w-full py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700">Create Trip</button></div>
-        </div>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon" style="width:38px;height:38px;font-size:19px;">✈️</div>
+      <span style="font-size:20px;font-weight:800;letter-spacing:-.5px;">TripSplitter</span>
     </div>
+    <div class="login-sub" id="login-sub">Choose your profile to continue</div>
+    <div class="login-plbl" id="login-plbl">SELECT PROFILE</div>
+    <div class="login-grid" id="login-grid"></div>
+  </div>
+</div>
 
-    <div id="modal-profile" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end md:items-center justify-center backdrop-blur-sm" onclick="closeModal('modal-profile')">
-        <div class="bg-white md:rounded-2xl rounded-t-2xl p-0 w-full max-w-lg shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-            <div class="bg-primary-600 h-24 relative"><button onclick="closeModal('modal-profile')" class="absolute top-4 right-4 text-white/80 hover:text-white"><i class="ph-bold ph-x text-xl"></i></button></div>
-            <div class="px-6 pb-6 relative"><div class="-mt-12 mb-4"><img src="https://ui-avatars.com/api/?name=Rahul+Verma&background=0D8ABC&color=fff" class="w-24 h-24 rounded-full border-4 border-white shadow-md"></div><h3 class="text-2xl font-bold text-gray-900">Rahul Verma</h3><p class="text-gray-500">rahul.v@example.com</p><div class="mt-6 space-y-2"><button class="w-full flex justify-between items-center p-4 border border-gray-100 rounded-xl hover:bg-gray-50"><span class="font-medium text-gray-700">Currency</span><span class="text-gray-500 text-sm">INR (₹) ></span></button></div><button onclick="closeModal('modal-profile')" class="w-full mt-6 py-3 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50">Log Out</button></div>
-        </div>
+<div id="app-shell">
+<div class="app-inner">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="logo-icon" style="width:30px;height:30px;font-size:14px;">✈️</div>
+      <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.5px;">TripSplitter</span>
     </div>
+    <div class="sb-trip">
+      <div class="sb-trip-lbl" id="sb-trip-lbl">CURRENT TRIP</div>
+      <div class="sb-pill"><span class="sb-dot"></span>
+        <div><div class="sb-tname">Goa Trip 2026</div><div class="sb-tsub" id="sb-tsub">4 Members</div></div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" id="btn-dashboard" onclick="navTo('dashboard')"><span>🏠</span><span id="nl-dash">Dashboard</span></button>
+      <button class="nav-btn" id="btn-add" onclick="navTo('add')"><span>➕</span><span id="nl-add">Add Expense</span></button>
+      <button class="nav-btn" id="btn-balances" onclick="navTo('balances')"><span>⚖️</span><span id="nl-bal">Balances</span></button>
+      <button class="nav-btn" id="btn-map" onclick="navTo('map')"><span>🗺️</span><span id="nl-map">Map View</span></button>
+      <button class="nav-btn" id="btn-report" onclick="navTo('report')"><span>📄</span><span id="nl-rep">Report</span></button>
+    </nav>
+    <div class="lang-wrap"><div class="lang-row">
+      <button class="lbtn active" id="lbtn-en" onclick="setLang('en')">English</button>
+      <button class="lbtn" id="lbtn-hi" onclick="setLang('hi')">हिंदी</button>
+    </div></div>
+    <div class="sb-profile">
+      <button class="sb-pbtn" onclick="openModal('modal-profile')">
+        <div class="av" id="sb-av" style="width:30px;height:30px;font-size:11px;border:2px solid rgba(255,255,255,.2);"></div>
+        <div><div class="sb-pname" id="sb-pname">—</div><div class="sb-psub" id="sb-psub">View Profile</div></div>
+        <span class="sb-gear">⚙</span>
+      </button>
+    </div>
+  </aside>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <main>
+    <section id="view-dashboard" class="view active">
+      <div class="pp" style="padding-bottom:0;">
+        <div class="hero"><div class="hero-bg">✈</div>
+          <div class="hlbl" id="hl-total">Total Trip Spending</div>
+          <div class="hamt" id="hero-total">₹0</div>
+          <div class="hpills">
+            <div class="hpill"><span class="plbl" id="hl-share">Your Share</span><span class="pval" id="hero-share">₹0</span></div>
+            <div class="hpill"><span class="plbl" id="hl-paid">You Paid</span><span class="pval" id="hero-paid">₹0</span></div>
+            <div class="hpill"><span class="plbl" id="hl-net">Net Balance</span><span class="pval" id="hero-net">₹0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-grid pp">
+        <div class="card"><div class="card-hd" id="cd-cat">Category Breakdown</div><div id="cat-bars"></div></div>
+        <div class="card"><div class="card-hd" id="cd-rec">Recent Expenses</div><div id="recent-list"></div>
+          <button class="add-ghost" onclick="navTo('add')" id="ghost-btn">➕ Add New Expense</button></div>
+      </div>
+    </section>
 
-    <script>
-        // NAVIGATION LOGIC
-        function navTo(pageId) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById('view-' + pageId).classList.remove('hidden');
-            
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('active', 'bg-primary-600', 'text-white', 'shadow-lg');
-                btn.classList.add('text-gray-500', 'hover:bg-primary-50', 'hover:text-primary-700');
-            });
-            const activeBtn = document.getElementById('btn-' + pageId);
-            activeBtn.classList.remove('text-gray-500', 'hover:bg-primary-50', 'hover:text-primary-700');
-            activeBtn.classList.add('active', 'bg-primary-600', 'text-white', 'shadow-lg');
+    <section id="view-add" class="view"><div class="form-wrap"><div class="form-card">
+      <div class="ftitle" id="ft-title">Add Expense</div>
+      <div class="field"><div class="flbl" id="fl-amt">Amount (₹)</div>
+        <div class="amt-wrap"><span class="amt-pre">₹</span><input type="number" class="amt-inp" id="inp-amt" placeholder="0.00"></div></div>
+      <div class="field"><div class="flbl" id="fl-desc">Description</div>
+        <input type="text" class="txt-inp" id="inp-desc" placeholder="e.g. Dinner at beach shack"></div>
+      <div class="field"><div class="flbl" style="margin-bottom:8px;" id="fl-cat">Category</div>
+        <div class="cat-grid">
+          <button class="cat-opt active" onclick="selCat(this,'food')"><span class="co-icon">🍕</span><span class="co-en">Food</span><span class="co-hi">खाना</span></button>
+          <button class="cat-opt" onclick="selCat(this,'transport')"><span class="co-icon">🚗</span><span class="co-en">Transport</span><span class="co-hi">यातायात</span></button>
+          <button class="cat-opt" onclick="selCat(this,'stay')"><span class="co-icon">🏠</span><span class="co-en">Stay</span><span class="co-hi">रहना</span></button>
+          <button class="cat-opt" onclick="selCat(this,'fun')"><span class="co-icon">🎉</span><span class="co-en">Fun</span><span class="co-hi">मनोरंजन</span></button>
+        </div></div>
+      <div class="field"><div class="flbl" id="fl-paidby">Paid By</div><select class="txt-inp" id="inp-paidby"></select></div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="navTo('dashboard')" id="f-cancel">Cancel</button>
+        <button class="btn-save" onclick="doSaveExpense()" id="f-save">✓ Save Expense</button>
+      </div>
+    </div></div></section>
 
-            if(pageId === 'map' && map) { setTimeout(() => { map.invalidateSize(); }, 200); }
-        }
+    <section id="view-balances" class="view">
+      <div class="pp" style="padding-bottom:0;">
+        <div class="page-title" id="bal-title">Settlement Plan</div>
+        <div class="page-sub" id="bal-sub"></div>
+      </div>
+      <div class="bal-grid pp">
+        <div id="settle-list"></div>
+        <div class="pay-card">
+          <div class="pc-lbl" id="pc-lbl">Total You Owe</div>
+          <div class="pc-amt owe" id="pc-amt">₹0</div>
+          <div class="qr-box" id="qr-box" style="display:none;">
+            <img id="qr-img" src="" alt="QR"><div class="qr-lbl" id="qr-lbl">Scan to Pay</div>
+          </div>
+          <div class="upi-note">GPay · PhonePe · Paytm · UPI</div>
+          <button class="btn-share" onclick="showToast(t('share_copied'))" id="pc-share">↗ Share Payment Link</button>
+        </div>
+      </div>
+    </section>
 
-        function selectCategory(btn) {
-            const parent = btn.parentElement;
-            parent.querySelectorAll('.cat-btn').forEach(b => { b.classList.remove('active'); });
-            btn.classList.add('active');
-        }
+    <section id="view-map" class="view">
+      <div class="map-sb">
+        <div class="map-sb-hd"><div class="map-sb-title" id="map-title">Expense Locations</div><div class="map-sb-sub" id="map-sub"></div></div>
+        <div class="map-list" id="map-list"></div>
+      </div>
+      <div class="map-main"><div id="map-container"></div></div>
+    </section>
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function switchTripName(name) { document.getElementById('current-trip-name').innerText = name; navTo('dashboard'); }
+    <section id="view-report" class="view">
+      <div class="report-hd">
+        <div><div class="page-title" id="rep-title">Expense Report</div><div class="page-sub" id="rep-sub"></div></div>
+        <button class="btn-print" onclick="window.print()">🖨 <span id="rep-print">Print PDF</span></button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th id="th-date">Date</th><th id="th-desc">Description</th><th id="th-cat">Category</th><th id="th-paid">Paid By</th><th id="th-split">Split</th><th class="r" id="th-amt">Amount</th></tr></thead>
+        <tbody id="rep-tbody"></tbody><tfoot><tr id="rep-tfoot"></tr></tfoot>
+      </table></div>
+    </section>
+  </main>
+</div></div>
 
-        // --- REAL MAP LOGIC (Updated to Goa) ---
-        var map;
-        document.addEventListener('DOMContentLoaded', () => {
-            map = L.map('map-container').setView([15.5494, 73.7535], 11); // Focused on Goa
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+<div class="modal" id="modal-profile" onclick="closeModal('modal-profile')">
+  <div class="mbox" style="padding:0;overflow:hidden;" onclick="event.stopPropagation()">
+    <div class="pmod-hd"><button class="pmod-close" onclick="closeModal('modal-profile')">✕</button></div>
+    <div style="padding:0 18px 18px;display:flex;flex-direction:column;align-items:flex-start;">
+      <div class="av" id="pm-av" style="width:54px;height:54px;font-size:20px;border:3px solid #fff;margin-top:-27px;"></div>
+      <div class="pmod-name" id="pm-name">—</div><div class="pmod-email" id="pm-email">—</div>
+      <div style="width:100%;">
+        <div class="popt"><span id="pm-curr-lbl">Currency</span><span class="popt-r">INR (₹)</span></div>
+        <div class="popt" onclick="closeModal('modal-profile');openModal('modal-switch')"><span id="pm-sw-lbl">Switch Profile</span><span class="popt-r">›</span></div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">↩ <span id="pm-logout">Log Out</span></button>
+    </div>
+  </div>
+</div>
 
-            L.marker([15.5494, 73.7535]).addTo(map).bindPopup("<b>Britto's Shack</b><br>₹2,400").openPopup();
-            L.marker([15.4909, 73.8278]).addTo(map).bindPopup("<b>Fort Aguada</b><br>₹500");
-        });
+<div class="modal" id="modal-switch" onclick="closeModal('modal-switch')">
+  <div class="mbox" onclick="event.stopPropagation()">
+    <div class="mtitle" id="sw-title">Switch Profile</div>
+    <div class="sw-grid" id="sw-grid"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
-        function panMap(lat, lng) { map.flyTo([lat, lng], 14); }
-    </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const MEMBERS=[
+  {id:'rahul',name:'Rahul Verma', email:'rahul@example.com',color:'#4f46e5'},
+  {id:'priya',name:'Priya Sharma',email:'priya@example.com',color:'#059669'},
+  {id:'arjun',name:'Arjun Singh', email:'arjun@example.com',color:'#d97706'},
+  {id:'sneha',name:'Sneha Patel', email:'sneha@example.com',color:'#e11d48'},
+];
+const CAT={
+  food:     {icon:'🍕',bg:'#fff7ed',en:'Food',     hi:'खाना',   bar:'#f97316'},
+  transport:{icon:'🚗',bg:'#f0fdf4',en:'Transport',hi:'यातायात',bar:'#059669'},
+  stay:     {icon:'🏠',bg:'#eef2ff',en:'Stay',     hi:'रहना',   bar:'#4f46e5'},
+  fun:      {icon:'🎉',bg:'#f5f3ff',en:'Fun',      hi:'मनोरंजन',bar:'#7c3aed'},
+};
+const MAP_PINS=[
+  {name:"Britto's Shack",sub:'Baga',       lat:15.5494,lng:73.7535,icon:'🍕',bg:'#fff7ed'},
+  {name:'Fort Aguada',   sub:'Sinquerim',  lat:15.4909,lng:73.8278,icon:'🏰',bg:'#f5f3ff'},
+  {name:'Hotel Calangute',sub:'Calangute', lat:15.5587,lng:73.7661,icon:'🏨',bg:'#eef2ff'},
+];
+const SEED=[
+  {id:'e1',desc:"Dinner at Britto's",cat:'food',     amt:2400, paidBy:'priya',date:'2026-03-12',lat:15.5494,lng:73.7535},
+  {id:'e2',desc:'Cab to Airport',    cat:'transport',amt:850,  paidBy:'rahul',date:'2026-03-12',lat:null,lng:null},
+  {id:'e3',desc:'Fort Aguada Entry', cat:'fun',      amt:500,  paidBy:'arjun',date:'2026-03-13',lat:15.4909,lng:73.8278},
+  {id:'e4',desc:'Hotel Calangute 3N',cat:'stay',     amt:12000,paidBy:'priya',date:'2026-03-14',lat:15.5587,lng:73.7661},
+];
+function loadExp(){const r=sessionStorage.getItem('ts_exp');return r?JSON.parse(r):JSON.parse(JSON.stringify(SEED));}
+function saveExp(a){sessionStorage.setItem('ts_exp',JSON.stringify(a));}
+let expenses=loadExp(),currentUser=null,lang='en',map=null,mapMarkers=[],activeCat='food';
+
+function initials(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function setAv(el,m){el.style.background=m.color;el.textContent=initials(m.name);}
+
+const T={
+en:{total:'Total Trip Spending',share:'Your Share',paid:'You Paid',net:'Net Balance',
+    cat_hd:'Category Breakdown',rec_hd:'Recent Expenses',ghost:'➕ Add New Expense',
+    ft:'Add Expense',fl_amt:'Amount (₹)',fl_desc:'Description',fl_cat:'Category',fl_paid:'Paid By',
+    cancel:'Cancel',save:'✓ Save Expense',bal:'Settlement Plan',bal_sub:'',
+    pc_owe:'Total You Owe',pc_owed:'Total Owed to You',qr:'Scan to Pay',
+    share_btn:'↗ Share Payment Link',share_copied:'✓ Payment link copied!',
+    map_t:'Expense Locations',map_sfx:'Locations found',
+    rep_t:'Expense Report',rep_sub:'',print:'Print PDF',
+    th_date:'Date',th_desc:'Description',th_cat:'Category',th_paid:'Paid By',th_split:'Split',th_amt:'Amount',
+    total_lbl:'Total',owes:'owes',settled:'🎉 Everyone is settled up!',nothing:'All Settled!',
+    sw:'Switch Profile',logout:'Log Out',currency:'Currency',trip_lbl:'CURRENT TRIP',
+    members:n=>`${n} Members`,you:n=>`You (${n})`,self:'You paid',saved:'✓ Expense saved!',
+    err_amt:'Enter a valid amount',err_desc:'Enter a description',switched:n=>`Switched to ${n}`,view_profile:'View Profile'},
+hi:{total:'कुल यात्रा खर्च',share:'आपका हिस्सा',paid:'आपने दिया',net:'शेष राशि',
+    cat_hd:'श्रेणी विवरण',rec_hd:'हाल के खर्च',ghost:'➕ नया खर्च जोड़ें',
+    ft:'खर्च जोड़ें',fl_amt:'राशि (₹)',fl_desc:'विवरण',fl_cat:'श्रेणी',fl_paid:'किसने दिया',
+    cancel:'रद्द करें',save:'✓ खर्च सहेजें',bal:'निपटान योजना',bal_sub:'निपटान योजना',
+    pc_owe:'आपका कुल बकाया',pc_owed:'आपको मिलने वाली राशि',qr:'भुगतान के लिए स्कैन करें',
+    share_btn:'↗ लिंक भेजें',share_copied:'✓ लिंक कॉपी हो गया!',
+    map_t:'खर्च के स्थान',map_sfx:'स्थान मिले',
+    rep_t:'खर्च रिपोर्ट',rep_sub:'खर्च रिपोर्ट',print:'PDF प्रिंट',
+    th_date:'तारीख',th_desc:'विवरण',th_cat:'श्रेणी',th_paid:'किसने दिया',th_split:'बँटवारा',th_amt:'राशि',
+    total_lbl:'कुल',owes:'बकाया है',settled:'🎉 सब बराबर है!',nothing:'सब बराबर!',
+    sw:'प्रोफाइल बदलें',logout:'लॉग आउट',currency:'मुद्रा',trip_lbl:'वर्तमान यात्रा',
+    members:n=>`${n} सदस्य`,you:n=>`आप (${n})`,self:'आपने दिया',saved:'✓ खर्च सहेजा गया!',
+    err_amt:'राशि दर्ज करें',err_desc:'विवरण दर्ज करें',switched:n=>`${n} पर बदल दिया`,view_profile:'प्रोफ़ाइल देखें'}
+};
+const t=k=>T[lang][k]??T.en[k]??k;
+
+function setLang(l){
+  lang=l;
+  ['en','hi'].forEach(x=>document.getElementById('lbtn-'+x).classList.toggle('active',x===l));
+  document.body.style.fontFamily=l==='hi'?"'Noto Sans Devanagari',sans-serif":"'Syne',sans-serif";
+  document.querySelectorAll('.co-hi').forEach(el=>el.style.display=l==='hi'?'none':'');
+  applyLangText();refreshAll();
+}
+function applyLangText(){
+  const ids={'hl-total':'total','hl-share':'share','hl-paid':'paid','hl-net':'net',
+    'cd-cat':'cat_hd','cd-rec':'rec_hd','ghost-btn':'ghost','ft-title':'ft',
+    'fl-amt':'fl_amt','fl-desc':'fl_desc','fl-cat':'fl_cat','fl-paidby':'fl_paid',
+    'f-cancel':'cancel','f-save':'save','bal-title':'bal','bal-sub':'bal_sub',
+    'map-title':'map_t','rep-title':'rep_t','rep-sub':'rep_sub','rep-print':'print',
+    'th-date':'th_date','th-desc':'th_desc','th-cat':'th_cat','th-paid':'th_paid',
+    'th-split':'th_split','th-amt':'th_amt','sw-title':'sw','pm-curr-lbl':'currency',
+    'pm-sw-lbl':'sw','pm-logout':'logout','pc-share':'share_btn','sb-trip-lbl':'trip_lbl','sb-psub':'view_profile'};
+  Object.entries(ids).forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.textContent=t(k);});
+  document.getElementById('sb-tsub').textContent=t('members')(4);
+}
+function buildLogin(){
+  document.getElementById('login-grid').innerHTML='';
+  MEMBERS.forEach(m=>{
+    const d=document.createElement('div');d.className='pcard';
+    const av=document.createElement('div');
+    av.className='av';av.style.cssText=`width:44px;height:44px;font-size:16px;background:${m.color};`;
+    av.textContent=initials(m.name);
+    d.appendChild(av);d.innerHTML+=`<div class="pname">${m.name}</div>`;
+    d.onclick=()=>loginAs(m.id);document.getElementById('login-grid').appendChild(d);
+  });
+}
+function loginAs(uid){
+  currentUser=MEMBERS.find(m=>m.id===uid);
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  updateProfileUI();fillPaidBy();applyLangText();refreshAll();navTo('dashboard');
+}
+function doLogout(){closeModal('modal-profile');document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';}
+function updateProfileUI(){
+  if(!currentUser)return;
+  setAv(document.getElementById('sb-av'),currentUser);
+  setAv(document.getElementById('pm-av'),currentUser);
+  document.getElementById('sb-pname').textContent=currentUser.name;
+  document.getElementById('pm-name').textContent=currentUser.name;
+  document.getElementById('pm-email').textContent=currentUser.email;
+}
+function navTo(pg){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+pg).classList.add('active');
+  const btn=document.getElementById('btn-'+pg);if(btn)btn.classList.add('active');
+  if(pg==='map')initOrRefreshMap();
+  if(pg==='balances')refreshBalances();
+  if(pg==='report')refreshReport();
+}
+function calcTotals(){
+  const n=MEMBERS.length,total=expenses.reduce((s,e)=>s+e.amt,0),share=total/n;
+  const paid={};MEMBERS.forEach(m=>paid[m.id]=0);
+  expenses.forEach(e=>{if(paid[e.paidBy]!==undefined)paid[e.paidBy]+=e.amt;});
+  const net={};MEMBERS.forEach(m=>net[m.id]=paid[m.id]-share);
+  return{total,share,paid,net};
+}
+function calcSettlements(){
+  const{net}=calcTotals(),cred=[],debt=[];
+  MEMBERS.forEach(m=>{if(net[m.id]>0.5)cred.push({id:m.id,amt:net[m.id]});else if(net[m.id]<-0.5)debt.push({id:m.id,amt:-net[m.id]});});
+  const res=[];let ci=0,di=0;
+  while(ci<cred.length&&di<debt.length){
+    const c=cred[ci],d=debt[di],pay=Math.min(c.amt,d.amt);
+    res.push({from:d.id,to:c.id,amt:pay});
+    c.amt-=pay;d.amt-=pay;if(c.amt<0.5)ci++;if(d.amt<0.5)di++;
+  }
+  return res;
+}
+function getMem(id){return MEMBERS.find(m=>m.id===id)||{name:id,color:'#64748b',id};}
+function avHtml(m,size=32){return`<div class="av" style="width:${size}px;height:${size}px;font-size:${size*.38|0}px;background:${m.color};">${initials(m.name)}</div>`;}
+
+function refreshDashboard(){
+  if(!currentUser)return;
+  const{total,share,paid,net}=calcTotals(),myNet=net[currentUser.id];
+  document.getElementById('hero-total').textContent='₹'+fmt(total);
+  document.getElementById('hero-share').textContent='₹'+fmt(share);
+  document.getElementById('hero-paid').textContent='₹'+fmt(paid[currentUser.id]);
+  const nEl=document.getElementById('hero-net');
+  nEl.textContent=(myNet>=0?'+₹':'−₹')+fmt(Math.abs(myNet));nEl.style.color=myNet>=0?'#4ade80':'#fb7185';
+  const ctot={};Object.keys(CAT).forEach(k=>ctot[k]=0);
+  expenses.forEach(e=>{if(ctot[e.cat]!==undefined)ctot[e.cat]+=e.amt;});
+  const mx=Math.max(...Object.values(ctot),1);
+  document.getElementById('cat-bars').innerHTML=Object.entries(CAT).map(([k,v])=>{
+    const label=lang==='hi'?v.hi:v.en,sub=lang==='hi'?v.en:v.hi;
+    return`<div class="cat-row"><div class="cat-top"><span class="cname">${v.icon} ${label} <span class="cname-sub">${sub}</span></span><span class="camt">₹${fmt(ctot[k])}</span></div><div class="bar-t"><div class="bar-f" style="width:${Math.round(ctot[k]/mx*100)}%;background:${v.bar};"></div></div></div>`;
+  }).join('');
+  document.getElementById('recent-list').innerHTML=[...expenses].reverse().slice(0,4).map(e=>{
+    const cm=CAT[e.cat]||CAT.food,isMe=e.paidBy===currentUser.id;
+    return`<div class="exp-item"><div class="exp-icon" style="background:${cm.bg};">${cm.icon}</div><div style="flex:1;min-width:0;"><div class="exp-name">${e.desc}</div><div class="exp-meta">${isMe?t('self'):getMem(e.paidBy).name} · ${fmtDate(e.date)}</div></div><div class="exp-amt">−₹${fmt(e.amt)}</div></div>`;
+  }).join('');
+}
+function selCat(btn,cat){document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');activeCat=cat;}
+function fillPaidBy(){
+  const s=document.getElementById('inp-paidby');s.innerHTML='';
+  MEMBERS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id===currentUser.id?t('you')(m.name):m.name;if(m.id===currentUser.id)o.selected=true;s.appendChild(o);});
+}
+function doSaveExpense(){
+  const amt=parseFloat(document.getElementById('inp-amt').value),desc=document.getElementById('inp-desc').value.trim();
+  if(!amt||amt<=0){showToast(t('err_amt'));return;}if(!desc){showToast(t('err_desc'));return;}
+  expenses.push({id:'e'+Date.now(),desc,cat:activeCat,amt,paidBy:document.getElementById('inp-paidby').value,date:new Date().toISOString().slice(0,10),lat:null,lng:null});
+  saveExp(expenses);document.getElementById('inp-amt').value='';document.getElementById('inp-desc').value='';
+  document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('active'));document.querySelector('.cat-opt').classList.add('active');activeCat='food';
+  showToast(t('saved'));refreshAll();setTimeout(()=>navTo('dashboard'),700);
+}
+function refreshBalances(){
+  if(!currentUser)return;
+  const setts=calcSettlements(),{net}=calcTotals();
+  document.getElementById('settle-list').innerHTML=setts.length?setts.map(s=>{
+    const from=getMem(s.from),to=getMem(s.to),isMe=s.from===currentUser.id;
+    return`<div class="settle-row" style="${isMe?'border-color:#c7d2fe;background:#eef2ff;':''}">
+      ${avHtml(from)}<div class="sinfo"><div class="sname" style="${isMe?'color:var(--ind);':''}">${isMe?t('you')(from.name):from.name}</div><div class="saction">${t('owes')}</div></div>
+      <span class="sarrow">→</span><div class="sto">${avHtml(to)}<span class="sto-name">${to.name}</span></div>
+      <div class="sbadge">₹${fmt(s.amt)}</div></div>`;
+  }).join(''):`<div style="padding:20px;color:var(--s400);font-size:12px;text-align:center;">${t('settled')}</div>`;
+  const myNet=net[currentUser.id],pcAmt=document.getElementById('pc-amt'),qrBox=document.getElementById('qr-box');
+  document.getElementById('pc-lbl').textContent=myNet<0?t('pc_owe'):t('pc_owed');
+  if(Math.abs(myNet)<1){pcAmt.textContent=t('nothing');pcAmt.className='pc-amt owed';pcAmt.style.fontSize='16px';qrBox.style.display='none';}
+  else if(myNet<0){
+    const payee=getMem((setts.find(s=>s.from===currentUser.id)||{to:MEMBERS[0].id}).to);
+    pcAmt.textContent='−₹'+fmt(Math.abs(myNet));pcAmt.className='pc-amt owe';pcAmt.style.fontSize='';qrBox.style.display='flex';
+    document.getElementById('qr-lbl').textContent=`${t('qr')} ${payee.name}`;
+    document.getElementById('qr-img').src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${payee.id}@okaxis%26pn=${encodeURIComponent(payee.name)}%26am=${Math.round(Math.abs(myNet))}`;
+  } else {pcAmt.textContent='+₹'+fmt(myNet);pcAmt.className='pc-amt owed';pcAmt.style.fontSize='';qrBox.style.display='none';}
+}
+function refreshReport(){
+  if(!currentUser)return;
+  const n=MEMBERS.length;let total=0;
+  document.getElementById('rep-tbody').innerHTML=expenses.map(e=>{
+    const cm=CAT[e.cat]||CAT.food;total+=e.amt;
+    return`<tr><td>${fmtDate(e.date)}</td><td class="b">${e.desc}</td><td><span class="tag" style="background:${cm.bg};color:${cm.bar};">${cm.icon} ${lang==='hi'?cm.hi:cm.en}</span></td><td>${e.paidBy===currentUser.id?t('self'):getMem(e.paidBy).name}</td><td style="color:var(--s500);">₹${fmt(e.amt/n)}</td><td class="r">₹${fmt(e.amt)}</td></tr>`;
+  }).join('');
+  document.getElementById('rep-tfoot').innerHTML=`<td colspan="5" style="font-weight:700;font-size:12px;padding:10px 12px;">${t('total_lbl')}</td><td class="r" style="font-size:14px;font-weight:800;color:var(--ind);padding:10px 12px;">₹${fmt(total)}</td>`;
+}
+function refreshMapList(){
+  document.getElementById('map-list').innerHTML=MAP_PINS.map(p=>{
+    const tot=expenses.filter(e=>e.lat===p.lat&&e.lng===p.lng).reduce((s,e)=>s+e.amt,0);
+    return`<div class="map-item" onclick="panMap(${p.lat},${p.lng})"><div class="map-icon" style="background:${p.bg};">${p.icon}</div><div><div class="map-iname">${p.name}</div><div class="map-isub">${p.sub}${tot>0?' · ₹'+fmt(tot):''}</div></div></div>`;
+  }).join('');
+  document.getElementById('map-sub').textContent=`${MAP_PINS.length} ${t('map_sfx')}`;
+}
+function initOrRefreshMap(){
+  if(!map){setTimeout(()=>{map=L.map('map-container').setView([15.5494,73.7535],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);redrawMarkers();},150);}
+  else setTimeout(()=>map.invalidateSize(),200);
+}
+function redrawMarkers(){
+  mapMarkers.forEach(m=>m.remove());mapMarkers=[];
+  const icon=L.divIcon({className:'',html:'<div style="background:#4f46e5;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div>',iconSize:[24,24],iconAnchor:[12,24]});
+  MAP_PINS.forEach(p=>{
+    const tot=expenses.filter(e=>e.lat===p.lat&&e.lng===p.lng).reduce((s,e)=>s+e.amt,0);
+    mapMarkers.push(L.marker([p.lat,p.lng],{icon}).addTo(map).bindPopup(`<b>${p.name}</b>${tot>0?'<br>₹'+fmt(tot):''}`));
+  });
+  if(mapMarkers.length)mapMarkers[0].openPopup();
+}
+function panMap(lat,lng){if(map)map.flyTo([lat,lng],14,{duration:1.2});}
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='modal-switch'){
+    document.getElementById('sw-grid').innerHTML='';
+    MEMBERS.forEach(m=>{
+      const d=document.createElement('div');d.className='swcard'+(m.id===currentUser.id?' cur':'');
+      d.innerHTML=`${avHtml(m,36)}<div class="sw-n">${m.name}</div><div class="sw-r">Traveller</div>`;
+      d.onclick=()=>{closeModal('modal-switch');loginAs(m.id);showToast(t('switched')(m.name));};
+      document.getElementById('sw-grid').appendChild(d);
+    });
+  }
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function refreshAll(){refreshDashboard();refreshBalances();refreshReport();refreshMapList();}
+function fmt(n){return Math.round(n||0).toLocaleString('en-IN');}
+function fmtDate(d){return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{month:'short',day:'numeric'});}
+let _tt=null;
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2500);}
+buildLogin();
+</script>
 </body>
-
 </html>
